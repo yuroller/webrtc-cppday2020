@@ -1,0 +1,458 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>webrtc</title>
+
+		<link rel="stylesheet" href="dist/reset.css">
+		<link rel="stylesheet" href="dist/reveal.css">
+		<link rel="stylesheet" href="dist/theme/black.css" id="theme">
+
+		<!-- Theme used for syntax highlighted code -->
+		<link rel="stylesheet" href="plugin/highlight/monokai.css" id="highlight-theme">
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section>
+					<h2>WebRTC in C++</h2>
+					<ul>
+						<li>Yuri Valentini</li>
+						<li>Italian C++ Day<br/>
+							28 Novembre 2020<br/>
+							<img src="img/logo-header.png"/></li>
+						
+					</ul>
+				</section>
+				<section>
+					<h2>Sommario</h2>
+					<ul>
+						<li>Introduzione a WebRTC</li>
+						<li>Concetti base VOIP</li>
+						<li>Comunicazione peer-to-peer</li>
+						<li>C++ in stile webrtc</li>
+						<li>Esempio DataChannel</li>
+						<li>Architettura videoconferenza</li>
+					</ul>
+				</section>
+				<section>
+					<h2>Yuri Valentini</h2>
+					<ul>
+						<li>Sviluppo Windows e Linux</li>
+						<li>C/C++, C#, Python</li>
+						<li>Videoconferenza e VOIP</li>
+						<li>yuroller@gmail.com</li>
+						<li><a href="https://github.com/yuroller">https://github.com/yuroller</a></li>						
+					</ul>
+				</section>
+				<section>
+						<p><img src="img/webrtc.png" style="background:rgb(255, 255, 255);"/></p>
+						<p>
+							<ul>
+							<li>Web Real-Time Communication</li>
+							<li>browser, mobile-phones, IoT</li>
+							<li>BSD license</li>
+							<li>No brevetti</li>
+						</ul>
+					</p>
+				</section>
+				<section>
+					<h2>Crescita videoconferenza</h2>
+					<img src="img/202011-uc-jul.png" /><br/>
+					<small>da <a href="https://bloggeek.me/webrtc-growth-2020/">bloggeek.me</a></small>
+				</section>
+				<section>
+					<h2>Storia</h2>
+					<ul>
+						<li>2010 Google acquisisce GIPS ($68.2 mil)</li>
+						<li>2011 Google rilascia WebRTC</li>
+						<li>IETF standard protocolli</li>
+						<li>W3C standard api browser</li>
+						<li>2013 video call fra browser diversi</li>
+						<li>2014 OpenWebRTC di Ericsson Research</li>
+						<li>2017 WebRTC 1.0 Candidate Recommendation</li>
+						<li><a href="https://w3c.github.io/webrtc-pc/">W3C Editor's Draft 12 November 2020</a></li>
+					</ul>
+				</section>
+				<section>
+					<h2>Supporto</h2>
+					<ul>
+						<li>PC (Chrome, Firefox, Edge, Safari)</li>
+						<li>Android (Chrome, Firefox)</li>
+						<li>IOS 11+ (MobileSafari/WebKit)</li>
+						<li>Chromecast (Google Stadia)</li>
+						<li>...</li>
+					</ul>
+				</section>				
+				<section>
+					<h2>API JavaScript</h2>
+					<ul>
+						<li>getUserMedia: accesso ai dispositivi</li>
+						<li>RTCPeerConnection: audio/video tra peer</li>
+						<ul>
+							<li>elaborazione segnali (aec, noise reduction, ...)</li>
+							<li>audio/video codec</li>
+							<li>comunicazione fra peer</li>
+							<li>sicurezza (DTLS, SRTP)</li>
+							<li>gestione banda (<a href="https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01">TWCC</a>, ...)</li>
+						</ul>
+						<li>RTCDataChannel: trasferimento dati</li>
+						<li>getStats: ottenere statistiche</li>
+					</ul>
+				</section>
+				<section>
+					<h2>Utilizzo api getUserMedia</h2>
+					<img src="img/202011-getusermedia.png" width="500" height="340"/><br/>
+					<small>da <a href="https://bloggeek.me/webrtc-growth-2020/">bloggeek.me</a></small>
+				</section>
+				<section>
+					<h2>Audio Video Codec</h2>
+					<ul>
+						<li>obbligatori</li>
+						<ul>
+							<li>PCMA/PCMU, Opus</li>
+							<li>DTMF via Telephone Event</li>
+						</ul>
+						<li>altri di Google WebRTC</li>
+						<ul>
+							<li>ISAC, G722, ILBC</li>
+							<li>CN (Confort Noise)</li>
+							<li>VP8, VP9</li>
+						</ul>
+						<li>esterni: es. H264, AV1</li>
+					</ul>
+				</section>
+				<section>
+					<h2><a href="https://tools.ietf.org/html/rfc4566">SDP</a></h2>
+					<ul>
+						<li>descrive i media</li>
+						<li>negoziazione offerta/risposta</li>
+						<li>utilizzato in VOIP SIP</li>
+						<li><a href="https://webrtchacks.com/sdp-anatomy/">sdp anatomy</a></li>
+						<li>&quot;alternativa&quot;
+							<a href="https://blogs.windows.com/msedgedev/2015/09/18/ortc-api-is-now-available-in-microsoft-edge/">ORTC</a> (DEAD)
+						</li>
+					</ul>
+				</section>
+				<section>
+					<h2>Terminologia VOIP/WebRTC</h2>
+					<ul>
+						<li>RTP, RTCP, <a href="https://en.wikipedia.org/wiki/Stream_Control_Transmission_Protocol">SCTP</a></li>
+						<li>DTLS, SRTP</li>
+						<li>STUN (Session Traversal Utilities for NAT)</li>
+						<li>TURN (Traversal Using Relays around NAT)</li>
+						<li>ICE (Interactive Connectivity Establishment)</li>
+					</ul>
+				</section>
+				<section>
+					<h2>Peer-To-Peer</h2>
+					<img src="img/webrtchacks/webrtc-1.jpeg"/><br/>
+					<small>da <a href="https://webrtchacks.com/webrtc-gw/">webrtchacks.com</a></small>
+				</section>
+				<section>
+					<h2>Installazione su Windows</h2>
+					<p>scaricare e scompattare
+						<a href="https://storage.googleapis.com/chrome-infra/depot_tools.zip">depot_tools</a>
+					</p>
+					<p>
+						<pre>c:\progetti&gt;PATH=C:\progetti\depot_tools;%PATH%
+c:\progetti&gt;set DEPOT_TOOLS_WIN_TOOLCHAIN=0
+c:\progetti&gt;gclient
+c:\progetti\webrtc&gt;fetch webrtc
+c:\progetti\webrtc\src&gt;gclient sync
+c:\progetti\webrtc\src&gt;gn gen out\Release --ide=vs \
+  --args="is_clang=false is_debug=false rtc_include_tests=false"
+c:\progetti\webrtc\src&gt;ninja -C out\Release</pre>
+					</p>
+				</section>
+				<section>
+					<h2>Installazione su Linux</h2>
+					<p>
+						<pre>~/progetti$ git clone \
+  https://chromium.googlesource.com/chromium/tools/depot_tools.git
+~/progetti$ export PATH=$HOME/progetti/depot_tools:$PATH
+~/progetti$ gclient
+~/progetti/webrtc$ fetch webrtc
+~/progetti/webrtc$ gclient sync
+~/progetti/webrtc$ gn gen out\Release \
+  --args="is_debug=false rtc_include_tests=false"
+~/progetti/webrtc$ ninja -C out\Release</pre>
+					</p>
+				</section>				
+				<section>
+					<h2>#include</h2>
+					<ul>
+						<li>Interfaccia &quot;stabile&quot; (api/* rtc_base/*)</li>
+						<li>Interfaccia privata (ad es. modules/*):</li>
+						<ul>
+							<li>modules/audio_coding</li>
+							<li>modules/video_coding</li>
+							<li>modules/desktop_capture</li>
+							<li>modules/audio_device</li>
+							<li>modules/audio_mixer</li>
+							<li>modules/rtp_rtcp</li>
+							<li>...</li>
+						</ul>
+					</ul>
+				</section>
+				<section>
+					<h2><a href="https://google.github.io/styleguide/cppguide.html">Google C++</a></h2>
+					<ul>
+						<li>C++11 (<a href="https://github.com/abseil/abseil-cpp">abseil</a>)</li>
+						<li>exception sono vietate</li>
+						<li>uso limitato degli stream stl</li>
+						<li>template &quot;semplici&quot;</li>
+					</ul>
+				</section>
+				<section>
+					<h2>rtc::Thread</h2>
+					<ul>
+						<li>implementa rtc::TaskQueueBase</li>
+						<li>inviare e ricevere messaggi (Post(), Get(), ..)</li>
+						<li>eseguire codice su thread (Invoke&lt;T&gt;())</li>
+						<li>socket server (Thread::CreateWithSocketServer())</li>
+					</ul>
+				</section>
+				<section>
+					<h2>rtc::scoped_refptr</h2>
+					<ul>
+						<li>reference count interno</li>
+						<li>tracciabilit&agrave; di oggetti reference counted (es. COM)</li>
+						<li>stessa memoria fra T e rtc::scoped_refptr&lt;T&gt;</li>
+						<li>meno allocazioni/deallocazioni</li>
+						<li>localit&agrave; di memoria</li>
+					</ul>
+				</section>
+				<section>
+					<h2>Observer WebRTC</h2>
+					<ul>
+						<li>esito di operazione asincrone</li>
+						<li>eventi asincroni</li>
+						<li>eseguito da thread specifico</li>
+						<li>gestione memoria semplificata</li>
+					</ul>
+				</section>
+				<section>
+					<h2>Oggetti WebRTC</h2>
+					<img src="img/BlockDiagram.png" style="background:rgb(255, 255, 255);"/>
+				</section>
+				<section>
+					<h2>PeerConnection 1</h2>
+					<pre><code class="c++">class PeerConnectionInterface : public rtc::RefCountInterface {
+public:
+  virtual rtc::scoped_refptr&lt;StreamCollectionInterface&gt;
+    local_streams() = 0;
+  virtual rtc::scoped_refptr&lt;StreamCollectionInterface&gt;
+    remote_streams() = 0;
+  virtual bool AddStream(MediaStreamInterface* stream) = 0;
+  virtual void RemoveStream(MediaStreamInterface* stream) = 0;
+  virtual RTCErrorOr&lt;rtc::scoped_refptr&lt;RtpSenderInterface&gt;&gt;
+    AddTrack(
+      rtc::scoped_refptr&lt;MediaStreamTrackInterface&gt; track,
+      const std::vector&lt;std::string&gt;& stream_ids) = 0;
+  virtual bool RemoveTrack(RtpSenderInterface* sender) = 0;
+...</code></pre>
+				</section>
+				<section>
+					<h2>PeerConnection 2</h2>
+					<pre><code class="c++">...
+  virtual RTCErrorOr&lt;rtc::scoped_refptr&lt;RtpTransceiverInterface&gt;&gt;
+    AddTransceiver(rtc::scoped_refptr&lt;MediaStreamTrackInterface&gt;
+      track) = 0;
+  virtual RTCErrorOr&lt;rtc::scoped_refptr&lt;RtpTransceiverInterface&gt;&gt;
+    AddTransceiver(rtc::scoped_refptr&lt;MediaStreamTrackInterface&gt;
+	  track, const RtpTransceiverInit& init) = 0;
+
+  virtual std::vector&lt;rtc::scoped_refptr&lt;RtpTransceiverInterface&gt;&gt;
+    GetTransceivers() const = 0;
+...</code></pre>				
+				</section>
+				<section>
+					<h2>PeerConnection 3</h2>
+					<pre><code class="c++">...
+  virtual void GetStats(
+    rtc::scoped_refptr&lt;RtpSenderInterface&gt; selector,
+    rtc::scoped_refptr&lt;RTCStatsCollectorCallback&gt; callback) {}
+  virtual void GetStats(
+    rtc::scoped_refptr&lt;RtpReceiverInterface&gt; selector,
+    rtc::scoped_refptr&lt;RTCStatsCollectorCallback&gt; callback) {}
+
+  virtual rtc::scoped_refptr&lt;DataChannelInterface&gt;
+    CreateDataChannel(
+      const std::string& label,
+      const DataChannelInit* config) = 0;
+...</code></pre>
+				</section>
+				<section>
+					<h2>PeerConnection 4</h2>
+					<pre><code class="c++">...
+  virtual void CreateOffer(
+    CreateSessionDescriptionObserver* observer,
+    const RTCOfferAnswerOptions& options) = 0;
+  virtual void CreateAnswer(
+    CreateSessionDescriptionObserver* observer,
+    const RTCOfferAnswerOptions& options) = 0;
+  virtual void SetLocalDescription(
+    SetSessionDescriptionObserver* observer,
+    SessionDescriptionInterface* desc) = 0;
+  virtual void SetRemoteDescription(
+    SetSessionDescriptionObserver* observer,
+    SessionDescriptionInterface* desc) {}
+...</code></pre>
+				</section>
+				<section>
+					<h2>PeerConnection 5</h2>
+					<pre><code class="c++">...
+  virtual bool AddIceCandidate(
+    const IceCandidateInterface* candidate) = 0;
+  virtual void Close() = 0;
+};</code></pre>
+				</section>
+				<section>
+					<h2>PeerConnectionObserver 1</h2>
+					<pre><code class="c++">class PeerConnectionObserver {
+public:
+  virtual ~PeerConnectionObserver() = default;
+
+  virtual void OnSignalingChange(
+    PeerConnectionInterface::SignalingState new_state) = 0;
+
+  virtual void OnAddStream(
+    rtc::scoped_refptr&lt;MediaStreamInterface&gt; stream) {}
+  virtual void OnRemoveStream(
+    rtc::scoped_refptr&lt;MediaStreamInterface&gt; stream) {}
+  virtual void OnDataChannel(
+    rtc::scoped_refptr&lt;DataChannelInterface&gt; data_channel) = 0;
+...</code></pre>
+				</section>
+				<section>
+					<h2>PeerConnectionObserver 2</h2>
+					<pre><code class="c++">...
+  virtual void OnRenegotiationNeeded() = 0;
+  virtual void OnIceConnectionChange(
+      PeerConnectionInterface::IceConnectionState new_state) {}
+  virtual void OnConnectionChange(
+      PeerConnectionInterface::PeerConnectionState new_state) {}
+  virtual void OnIceGatheringChange(
+      PeerConnectionInterface::IceGatheringState new_state) = 0;
+  virtual void OnIceCandidate(
+    const IceCandidateInterface* candidate) = 0;
+...</code></pre>
+				</section>
+				<section>
+					<h2>PeerConnectionObserver 3</h2>
+					<pre><code class="c++">...
+  virtual void OnAddTrack(
+    rtc::scoped_refptr&lt;RtpReceiverInterface&gt; receiver,
+    const std::vector&lt;rtc::scoped_refptr&lt;MediaStreamInterface&gt;&gt;&
+      streams) {}
+  virtual void OnTrack(
+    rtc::scoped_refptr&lt;RtpTransceiverInterface&gt; transceiver) {}
+  virtual void OnRemoveTrack(
+    rtc::scoped_refptr&lt;RtpReceiverInterface&gt; receiver) {}
+};</code></pre>
+				</section>
+				<section>
+					<h2>MediaStream 1</h2>
+					<pre><code class="c++">class MediaStreamInterface : public rtc::RefCountInterface,
+    public NotifierInterface {
+public:
+  virtual std::string id() const = 0;
+
+  virtual AudioTrackVector GetAudioTracks() = 0;
+  virtual VideoTrackVector GetVideoTracks() = 0;
+  virtual rtc::scoped_refptr&lt;AudioTrackInterface&gt; FindAudioTrack(
+    const std::string& track_id) = 0;
+  virtual rtc::scoped_refptr&lt;VideoTrackInterface&gt; FindVideoTrack(
+	const std::string& track_id) = 0;
+...</code></pre>
+				</section>
+				<section>
+					<h2>MediaStream 2</h2>
+					<pre><code class="c++">...
+  virtual bool AddTrack(AudioTrackInterface* track) = 0;
+  virtual bool AddTrack(VideoTrackInterface* track) = 0;
+  virtual bool RemoveTrack(AudioTrackInterface* track) = 0;
+  virtual bool RemoveTrack(VideoTrackInterface* track) = 0;
+
+protected:
+  ~MediaStreamInterface() override = default;
+};</code></pre>
+				</section>
+				<section>
+					<h2>Fare una chiamata</h2>
+					<img src="img/SetUpCall.png" style="background:rgb(255, 255, 255);"/>
+				</section>
+				<section>
+					<h2>Ricevere una chiamata</h2>
+					<img src="img/ReceiveCall.png" style="background:rgb(255, 255, 255);"/>
+				</section>
+				<section>
+					<h2>Terminare una chiamata</h2>
+					<img src="img/CloseCall.png" style="background:rgb(255, 255, 255);"/>
+				</section>
+				<section>
+					<h2>Protocolli</h2>
+					<img src="img/2015-datachannel-rtp-ip-stack.webp" style="background:rgb(255, 255, 255);" width="480" height="350"/><br/>
+						<small>da <a href="https://www.callstats.io/blog/2015/10/28/basics-webrtc-datachannel">callstats.io</a></small>
+				</section>
+				<section>
+					<h2>Videoconferenza</h2>
+					<ul>
+						<li>Mesh (Peer-To-Peer)</li>
+						<li>Mixer (MCU)</li>
+						<li>Router (SFU)</li>
+					</ul>
+				</section>
+				<section>
+					<h2>Peer-To-Peer</h2>
+					<img src="img/webrtchacks/mesh.png" style="background:rgb(255, 255, 255);"/>
+				</section>
+				<section>
+						<h2>MCU</h2>
+						<p><img src="img/webrtchacks/mixer.png" style="background:rgb(255, 255, 255);"/></p>
+						<p>Multipoint Control Unit</p>
+				</section>
+				<section>
+						<h2>SFU</h2>
+						<p><img src="img/webrtchacks/router.png" style="background:rgb(255, 255, 255);"/></p>
+						<p>Selective Forwarding Unit</p>
+				</section>
+				<section>
+					<h2>Attraversare NAT</h2>
+						<img src="img/webrtc-overview-28-638.jpg"/><br/>
+						<small>da <a href="https://help.nextcloud.com/t/help-me-understand-if-both-stun-and-turn-servers-are-required/20795">help.nextcloud.com </a></small>
+				</section>
+				<section>
+					<img src="img/webrtc-complete-diagram.png"/><br/>
+					<small>da <a href="https://hacks.mozilla.org/2013/07/webrtc-and-the-ocean-of-acronyms/">hacks.mozilla.org</a></small>
+				</section>
+				<section>
+					<h2>Domande?</h2>
+				</section>
+				<section>
+					<h2>Grazie</h2>
+					<p>Materiale di supporto su <a href="https://github.com/yuroller/webrtc-cppday2020">https://github.com/yuroller/webrtc-cppday2020</a></p>
+				</section>
+			</div>
+		</div>
+
+		<script src="dist/reveal.js"></script>
+		<script src="plugin/notes/notes.js"></script>
+		<script src="plugin/markdown/markdown.js"></script>
+		<script src="plugin/highlight/highlight.js"></script>
+		<script>
+			// More info about initialization & config:
+			// - https://revealjs.com/initialization/
+			// - https://revealjs.com/config/
+			Reveal.initialize({
+				hash: true,
+
+				// Learn about plugins: https://revealjs.com/plugins/
+				plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ]
+			});
+		</script>
+	</body>
+</html>
