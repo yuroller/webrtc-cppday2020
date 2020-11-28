@@ -13,4 +13,4 @@ cppday and cppday_snippets targets (just those, not the whole file) inside src/B
 are to be integrated into existing webrtc/src/examples/BUILD.gn file.
 
 In order to rebuild pdf slides, you need to integrate slides direcotry with
-an installation of (reveal.js)[https://revealjs.com/].
+an installation of [reveal.js](https://revealjs.com/).
