@@ -6,8 +6,8 @@ at [C++ Day 2020 by Italian C++ Community](https://www.italiancpp.org/cppday20-t
 
 ## Examples
 
-Sample code in src/examples directory is meant to be copied in webrtc/src/examples of a
+Sample code in src directory is meant to be copied in webrtc/src/examples of a
 google webrtc source code checkout.
 
-cppday and cppday_snipeets targets (just those, not the whole file) inside src/BUILD.gn
-are to be integrated into existing webrtc/src/BUILD.gn file.
+cppday and cppday_snippets targets (just those, not the whole file) inside src/BUILD.gn
+are to be integrated into existing webrtc/src/examples/BUILD.gn file.
